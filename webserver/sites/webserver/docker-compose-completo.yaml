@@ -1,0 +1,43 @@
+version: '3'
+
+services:
+   db:
+     image: mysql:latest
+     volumes:
+       - db:/var/lib/mysql
+     restart: "no"
+     environment:
+       MYSQL_ROOT_PASSWORD: easytoguess
+       MYSQL_DATABASE: wordpress
+       MYSQL_USER: wordpress
+       MYSQL_PASSWORD: eveneasier
+
+   wordpress:
+     depends_on:
+       - db
+     restart: "no"
+     image: wordpress:latest
+     volumes:
+       - wordpress:/var/www/html/wp-content
+     environment:
+       WORDPRESS_DB_HOST: db:3306
+       WORDPRESS_DB_USER: wordpress
+       WORDPRESS_DB_PASSWORD: eveneasier
+       WORDPRESS_DB_NAME: wordpress
+
+   nginx:
+     depends_on:
+       - wordpress
+     restart: "no"
+     volumes:
+       - /home/ubuntu/webserver/sites:/usr/share/nginx/html
+       - /home/ubuntu/webserver/nginx/:/etc/nginx
+     build:
+       context: .
+       dockerfile: Dockerfile-nginx
+     ports:
+       - "80:80"
+
+volumes:
+    db:
+    wordpress:
