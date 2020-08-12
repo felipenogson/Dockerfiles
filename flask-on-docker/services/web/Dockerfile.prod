@@ -1,0 +1,65 @@
+###########
+# BUILDER #
+###########
+
+
+FROM python:3.8.1-slim-buster as builder
+
+WORKDIR /usr/src/app
+
+# Variables para que python no cree archivos pyc y para que no envie mensajes a consola
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+# Instalar los paquetes para construir el cliente de postgressql psycopg2-binary con pip y otras dependencias
+RUN apt update
+RUN apt-get install -y --no-install-recommends g++ libpq5
+
+
+# Actualizando pip e instalando los paquetes necesarios
+RUN pip install --upgrade pip
+RUN pip install flake8
+COPY . /usr/src/app/
+RUN flake8 --ignore=E501,F401 --exclude env .
+
+COPY ./requirements.txt .
+RUN pip wheel --no-cache-dir --no-deps --wheel-dir /usr/src/app/wheels -r requirements.txt
+
+#########
+# FINAL #
+#########
+
+FROM python:3.8.1-slim-buster
+
+#crea el usuario y el directorio del usuario app
+RUN mkdir -p /home/app
+RUN addgroup --system app
+RUN adduser --system app --ingroup app
+
+ENV HOME=/home/app
+ENV APP_HOME=/home/app/web
+RUN mkdir $APP_HOME
+WORKDIR $APP_HOME
+
+# instala dependencias
+RUN apt-get update && apt-get install -y --no-install-recommends netcat g++ libpq-dev 
+COPY --from=builder /usr/src/app/wheels /wheels
+COPY --from=builder /usr/src/app/requirements.txt .
+RUN pip install --upgrade pip
+RUN pip install --no-cache /wheels/*
+RUN pip install psycopg2-binary
+
+# copiando el script entrypoint
+COPY ./entrypoint.sh $APP_HOME
+
+# copiando el proyecto
+COPY . $APP_HOME
+
+# le otorga todos los arhivos al usuario app
+RUN chown -R app:app $APP_HOME
+
+USER app
+
+
+# Ejecuta entrypoint.sh
+ENTRYPOINT ["/home/app/web/entrypoint.sh"]
