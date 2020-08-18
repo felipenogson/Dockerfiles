@@ -8,20 +8,18 @@ services:
         command: gunicorn --bind 0.0.0.0:5001 manage:app
         volumes:
             - static_volume:/home/app/web/project/static
-        expose:
-            - 5001
         env_file:
             - ./.env.prod
         depends_on:
             - db
+        restart: unless-stopped
     db:
         image: postgres:12-alpine
         volumes:
             - postgres_data:/var/lib/postgresql/data/
-        ports:
-            - 5432:5432
         env_file:
             - ./.env.prod.db
+        restart: unless-stopped
     nginx:
         build: ./services/nginx
         volumes:
@@ -30,6 +28,7 @@ services:
             - 5000:80
         depends_on:
             - web
+        restart: unless-stopped
 
 volumes:
     postgres_data:
