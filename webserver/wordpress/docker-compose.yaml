@@ -2,26 +2,28 @@ version: '3'
 
 services:
   db:
-    image: mysql:8.0
+    image:  hypriot/rpi-mysql
     container_name: db
     restart: unless-stopped
     environment:
       - MYSQL_DATABASE=wordpress
       - MYSQL_USER=mysqluser
       - MYSQL_PASSWORD=mysqlpassword
-      - MYSQL_RANDOM_ROOT_PASSWORD="1"
+      - MYSQL_ROOT_PASSWORD=myrootpassword
+
     volumes:
       - dbdata:/var/lib/mysql
-    command: '--default-authentication-plugin=mysql_native_password'
     networks:
       - app-network
 
   wordpress:
     depends_on:
       - db
-    image: wordpress:5.1.1-fpm-alpine
+    image: arm32v7/wordpress
     container_name: wordpress
     restart: unless-stopped
+    ports:
+        - "80:80"
     environment:
       - WORDPRESS_DB_HOST=db
       - WORDPRESS_DB_USER=mysqluser
@@ -32,19 +34,19 @@ services:
     networks:
       - app-network
 
-  webserver:
-    depends_on:
-      - wordpress
-    image: nginx:1.15.12-alpine
-    container_name: webserver
-    restart: unless-stopped
-    ports:
-      - "80:80"
-    volumes:
-      - wordpress:/var/www/html
-      - ..\nginx:/etc/nginx/
-    networks:
-      - app-network
+        #  webserver:
+        #    depends_on:
+        #      - wordpress
+        #    image: nginx:1.15.12-alpine
+        #    container_name: webserver
+        #    restart: unless-stopped
+        #    ports:
+        #      - "80:80"
+        #    volumes:
+        #      - wordpress:/var/www/html
+        #      - ../nginx:/etc/nginx/
+        #    networks:
+        #      - app-network
 
 volumes:
   wordpress:
